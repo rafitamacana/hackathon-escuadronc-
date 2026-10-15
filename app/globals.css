@@ -24,3 +24,113 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ==========================================================================
+   RESET Y VIEWPORT DINÁMICO MÓVIL
+   ========================================================================== */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #0b0f19;
+  -webkit-tap-highlight-color: transparent;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.app-viewport {
+  height: 100dvh;
+  width: 100vw;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ==========================================================================
+   CONTENEDOR DEL MAPA DE GOOGLE
+   ========================================================================== */
+.map-canvas-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background-color: #0b0f19;
+}
+
+/* Ocultar elementos predeterminados de Google que interfieren en móvil */
+.gm-style-cc,
+.gmnoprint a,
+.gmnoscreen {
+  display: none !important;
+}
+
+/* ==========================================================================
+   ESTILOS GLASSMORPHISM Y PANELES
+   ========================================================================== */
+.glass-panel {
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel-elevated {
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* ==========================================================================
+   ANIMACIONES DE RADAR Y PULSOS
+   ========================================================================== */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  75% {
+    transform: scale(2.2);
+    opacity: 0.1;
+  }
+  100% {
+    transform: scale(2.8);
+    opacity: 0;
+  }
+}
+
+.radar-ping-ring {
+  animation: pulse-ring 2.5s cubic-bezier(0.2, 0.6, 0.3, 1) infinite;
+}
+
+@keyframes slow-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: slow-spin 9s linear infinite;
+}
+
+/* ==========================================================================
+   ANIMACIONES DE ENTRADA (BOTTOM SHEET)
+   ========================================================================== */
+@keyframes slide-up {
+  from {
+    transform: translateY(18px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.slide-up-card {
+  animation: slide-up 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
