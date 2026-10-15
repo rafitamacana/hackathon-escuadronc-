@@ -1,0 +1,70 @@
+--  extensión para UUIDs
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+CREATE TABLE IF NOT EXISTS public.reportes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tipo_emergencia VARCHAR(20) NOT NULL CHECK (tipo_emergencia IN ('MEDICA', 'AGUA', 'RESCATE', 'OTRO')),
+    latitud DOUBLE PRECISION NOT NULL,
+    longitud DOUBLE PRECISION NOT NULL,
+    descripcion TEXT,
+    personas_afectadas INTEGER NOT NULL DEFAULT 1 CHECK (personas_afectadas >= 0),
+    estado VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE' CHECK (estado IN ('PENDIENTE', 'EN_PROCESO', 'ATENDIDA')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE TABLE IF NOT EXISTS public.centros_apoyo (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    nombre VARCHAR(120) NOT NULL,
+    tipo VARCHAR(30) NOT NULL,
+    direccion TEXT NOT NULL,
+    latitud DOUBLE PRECISION NOT NULL,
+    longitud DOUBLE PRECISION NOT NULL,
+    capacidad_total INTEGER DEFAULT 0,
+    ocupacion_actual INTEGER DEFAULT 0,
+    estado VARCHAR(20) NOT NULL DEFAULT 'DISPONIBLE' CHECK (estado IN ('DISPONIBLE', 'SATURADO', 'CERRADO')),
+    servicios TEXT[] DEFAULT '{}',
+    contacto VARCHAR(50),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_reportes_estado ON public.reportes (estado);
+CREATE INDEX IF NOT EXISTS idx_reportes_tipo ON public.reportes (tipo_emergencia);
+CREATE INDEX IF NOT EXISTS idx_reportes_created_at ON public.reportes (created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_centros_estado ON public.centros_apoyo (estado);
+CREATE INDEX IF NOT EXISTS idx_centros_tipo ON public.centros_apoyo (tipo);
+
+ALTER TABLE public.reportes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.centros_apoyo ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Permitir todo en reportes" ON public.reportes;
+CREATE POLICY "Permitir todo en reportes"
+ON public.reportes FOR ALL
+TO anon, authenticated
+USING (true)
+WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Permitir todo en centros" ON public.centros_apoyo;
+CREATE POLICY "Permitir todo en centros"
+ON public.centros_apoyo FOR ALL
+TO anon, authenticated
+USING (true)
+WITH CHECK (true);
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables 
+        WHERE pubname = 'supabase_realtime' AND tablename = 'reportes'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.reportes;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables 
+        WHERE pubname = 'supabase_realtime' AND tablename = 'centros_apoyo'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.centros_apoyo;
+    END IF;
+END $$;
+_apoyo
