@@ -52,6 +52,18 @@ type SelectedPoint =
 
 // Estilos oscuros tácticos para Google Maps
 const DARK_MAP_STYLE = [
+  // 1. Ocultar todos los puntos de interés comerciales y públicos nativos
+  {
+    featureType: 'poi',
+    stylers: [{ visibility: 'off' }]
+  },
+  // 2. Ocultar íconos y estaciones de transporte público nativas
+  {
+    featureType: 'transit',
+    elementType: 'labels.icon',
+    stylers: [{ visibility: 'off' }]
+  },
+  // 3. Mantener únicamente la geometría básica de calles y terreno
   { elementType: 'geometry', stylers: [{ color: '#171c26' }] },
   { elementType: 'labels.text.stroke', stylers: [{ color: '#171c26' }] },
   { elementType: 'labels.text.fill', stylers: [{ color: '#8d9bb0' }] },
@@ -59,16 +71,6 @@ const DARK_MAP_STYLE = [
     featureType: 'administrative.locality',
     elementType: 'labels.text.fill',
     stylers: [{ color: '#d1d5db' }]
-  },
-  {
-    featureType: 'poi',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#64748b' }]
-  },
-  {
-    featureType: 'poi.park',
-    elementType: 'geometry',
-    stylers: [{ color: '#1a2721' }]
   },
   {
     featureType: 'road',
@@ -89,11 +91,6 @@ const DARK_MAP_STYLE = [
     featureType: 'road.highway',
     elementType: 'geometry',
     stylers: [{ color: '#334155' }]
-  },
-  {
-    featureType: 'transit',
-    elementType: 'geometry',
-    stylers: [{ color: '#1e293b' }]
   },
   {
     featureType: 'water',
@@ -355,15 +352,16 @@ export default function EmergencyMap() {
       <main className="map-canvas-container flex-1">
         <GoogleMap
           mapContainerStyle={{ width: '100%', height: '100%' }}
-          center={{ lat: userPos.lat, lng: userPos.lng }}
-          zoom={15}
-          onLoad={onLoad}
-          options={{
-            styles: DARK_MAP_STYLE,
-            disableDefaultUI: true,
-            zoomControl: false,
-            gestureHandling: 'greedy'
-          }}
+            center={{ lat: userPos.lat, lng: userPos.lng }}
+            zoom={15}
+            onLoad={onLoad}
+            options={{
+              styles: DARK_MAP_STYLE,
+              disableDefaultUI: true,
+              zoomControl: false,
+              gestureHandling: 'greedy',
+              clickableIcons: false // <-- Desactiva clics en negocios y lugares nativos
+            }}
         >
           {/* Marcador del Dispositivo */}
           <Marker position={{ lat: userPos.lat, lng: userPos.lng }} icon={userMarkerIcon} />

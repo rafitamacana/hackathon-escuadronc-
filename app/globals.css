@@ -24,9 +24,8 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
-
 /* ==========================================================================
-   RESET Y VIEWPORT DINÁMICO MÓVIL
+   VIEWPORT MÓVIL Y CONTENEDOR MAPLIBRE
    ========================================================================== */
 html, body, #root {
   height: 100%;
@@ -47,25 +46,24 @@ html, body, #root {
   flex-direction: column;
 }
 
-/* ==========================================================================
-   CONTENEDOR DEL MAPA DE GOOGLE
-   ========================================================================== */
-.map-canvas-container {
+.maplibre-container {
   width: 100%;
   height: 100%;
-  position: relative;
-  background-color: #0b0f19;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
 
-/* Ocultar elementos predeterminados de Google que interfieren en móvil */
-.gm-style-cc,
-.gmnoprint a,
-.gmnoscreen {
+/* Ocultar logotipo o controles innecesarios en interfaz táctil */
+.maplibregl-ctrl-bottom-left,
+.maplibregl-ctrl-bottom-right {
   display: none !important;
 }
 
 /* ==========================================================================
-   ESTILOS GLASSMORPHISM Y PANELES
+   PANELES Y GLASSMORPHISM
    ========================================================================== */
 .glass-panel {
   background: rgba(15, 23, 42, 0.88);
@@ -79,50 +77,98 @@ html, body, #root {
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
 }
 
 /* ==========================================================================
-   ANIMACIONES DE RADAR Y PULSOS
+   MARCADOR DEL USUARIO Y PULSO RADAR
    ========================================================================== */
-@keyframes pulse-ring {
+.user-marker-container {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.user-marker-dot {
+  width: 14px;
+  height: 14px;
+  background-color: #38bdf8;
+  border: 2.5px solid #ffffff;
+  border-radius: 9999px;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.9);
+  z-index: 2;
+}
+
+@keyframes radar-ping {
   0% {
     transform: scale(0.6);
     opacity: 0.9;
   }
   75% {
-    transform: scale(2.2);
+    transform: scale(2.6);
     opacity: 0.1;
   }
   100% {
-    transform: scale(2.8);
+    transform: scale(3.4);
     opacity: 0;
   }
 }
 
-.radar-ping-ring {
-  animation: pulse-ring 2.5s cubic-bezier(0.2, 0.6, 0.3, 1) infinite;
-}
-
-@keyframes slow-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.animate-spin-slow {
-  animation: slow-spin 9s linear infinite;
+.user-marker-pulse {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  background: rgba(56, 189, 248, 0.3);
+  border: 1px solid #38bdf8;
+  animation: radar-ping 2.2s cubic-bezier(0.2, 0.6, 0.3, 1) infinite;
+  z-index: 1;
 }
 
 /* ==========================================================================
-   ANIMACIONES DE ENTRADA (BOTTOM SHEET)
+   MARCADORES DE EVENTOS
+   ========================================================================== */
+.event-pin {
+  width: 38px;
+  height: 38px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  transition: transform 0.15s ease-out;
+}
+
+.event-pin:active {
+  transform: scale(0.9);
+}
+
+@keyframes critical-pulse {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(244, 63, 94, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(244, 63, 94, 1);
+  }
+}
+
+.pin-critical {
+  animation: critical-pulse 1.8s infinite;
+}
+
+/* ==========================================================================
+   TRANSICIÓN DEL BOTTOM SHEET
    ========================================================================== */
 @keyframes slide-up {
   from {
-    transform: translateY(18px);
+    transform: translateY(20px);
     opacity: 0;
   }
   to {
@@ -132,5 +178,5 @@ html, body, #root {
 }
 
 .slide-up-card {
-  animation: slide-up 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: slide-up 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
