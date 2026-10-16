@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { supabase } from '../lib/supabase';
+import React, { useEffect, useState } from 'react';
+import { crearReporte, iniciarSync } from '../lib/sync';
 import {
   HeartPulse,
   Droplets,
@@ -65,6 +65,8 @@ export default function EmergencyReportModal({ isOpen, onClose, userPos, onRepor
   // 'idle' | 'submitting' | 'success' | 'error'
   const [status, setStatus] = useState({ state: 'idle', message: '' });
 
+  useEffect(() => iniciarSync(onReportSuccess), [onReportSuccess]);
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e) => {
@@ -82,7 +84,12 @@ export default function EmergencyReportModal({ isOpen, onClose, userPos, onRepor
       return;
     }
 
-    setStatus({ state: 'submitting', message: 'Transmitiendo reporte a unidades de auxilio...' });
+    setStatus({
+      state: 'submitting',
+      message: navigator.onLine
+        ? 'Transmitiendo reporte a unidades de auxilio...'
+        : 'Sin conexión. Guardando alerta en este dispositivo...'
+    });
 
     const databaseTypes = {
       medical: 'MEDICA',
@@ -91,26 +98,28 @@ export default function EmergencyReportModal({ isOpen, onClose, userPos, onRepor
       other: 'OTRO'
     };
 
-    const payload = {
+    const reporte = {
+      id: crypto.randomUUID(),
       tipo_emergencia: databaseTypes[selectedType],
       latitud: userPos.lat,
       longitud: userPos.lng,
       descripcion: description.trim() || null,
       personas_afectadas: peopleCount,
-      estado: 'PENDIENTE'
+      estado: 'PENDIENTE',
+      created_at: new Date().toISOString()
     };
 
     try {
-      const { error } = await supabase.from('reportes').insert([payload]);
-
-      if (error) throw error;
+      const resultado = await crearReporte(reporte);
 
       setStatus({
         state: 'success',
-        message: '¡Alerta enviada con éxito! Las cuadrillas de rescate han sido notificadas.'
+        message: resultado === 'enviado'
+          ? '¡Alerta enviada con éxito! Las cuadrillas de rescate han sido notificadas.'
+          : 'Alerta guardada en este dispositivo. Se enviará automáticamente al recuperar la conexión.'
       });
 
-      if (onReportSuccess) onReportSuccess();
+      if (resultado === 'enviado' && onReportSuccess) onReportSuccess();
 
       // Cierre automático tras confirmar envío
       setTimeout(() => {
