@@ -616,8 +616,9 @@ export default function EmergencyMap() {
       {/* ENLACE DISCRETO PARA RESCATISTAS */}
       <Link
         href="/dashboard"
-        className="absolute left-1/2 -translate-x-1/2 bottom-[6.5rem] z-10 text-[10px] text-slate-400 hover:text-white bg-slate-900/60 backdrop-blur-sm px-3 py-1 rounded-full border border-white/5 transition-colors"
+        className="absolute left-1/2 -translate-x-1/2 bottom-[6.5rem] z-10 flex items-center gap-2 text-sm font-bold text-white bg-sky-600/90 hover:bg-sky-500 backdrop-blur-sm px-5 py-2.5 rounded-full border border-sky-300/40 shadow-xl shadow-sky-950/50 active:scale-95 transition-all"
       >
+        <ShieldAlert className="w-4 h-4" />
         Soy rescatista →
       </Link>
 
