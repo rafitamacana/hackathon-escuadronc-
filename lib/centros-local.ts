@@ -275,6 +275,19 @@ export const CENTROS_GUASAVE_LOCALES: CentroApoyoLocal[] = [
     servicios: ['MEDICAMENTOS_GENERICOS', 'MATERIAL_CURACION', 'SUEROS'],
     contacto: '687-872-9110',
   },
+   {
+    id: 'local-19',
+    nombre: 'AR Hospital',
+    tipo: 'HOSPITAL',
+    direccion: 'Boulevard Juan Sigfrido Millan',
+    latitud: 25.571128,
+    longitud: -108.478654,
+    capacidad_total: 500,
+    ocupacion_actual: 75,
+    estado: 'DISPONIBLE',
+    servicios: ['URGENCIAS', 'QUIRÓFANO', 'HOSPITALIZACIÓN', 'PRIMEROS_AUXILIOS'],
+    contacto: '687-274-9120',
+  },
 ];
 
 
