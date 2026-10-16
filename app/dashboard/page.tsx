@@ -14,6 +14,8 @@ import {
   Navigation,
   Activity,
   Layers,
+  List,
+  X,
 } from 'lucide-react';
 import { supabase, obtenerReportes, marcarAtendida } from '@/lib/supabase';
 import { getAsignacionesActivas } from '@/lib/asignaciones';
@@ -41,6 +43,18 @@ export default function DashboardPage() {
   const [filtroTipo, setFiltroTipo] = useState<string>('TODOS');
   const [filtroEstado, setFiltroEstado] = useState<string>('TODOS');
   const [alertaEnfocada, setAlertaEnfocada] = useState<Reporte | null>(null);
+
+  // panel lateral abierto/cerrado (en celular arranca cerrado)
+  const [panelAbierto, setPanelAbierto] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (window.innerWidth < 768) setPanelAbierto(false);
+  }, []);
+
+  // avisa al mapa que cambió su tamaño al abrir/cerrar el panel
+  useEffect(() => {
+    window.dispatchEvent(new Event('resize'));
+  }, [panelAbierto]);
 
   // asignaciones de casos a rescatistas
   const [asignaciones, setAsignaciones] = useState<Asignacion[]>([]);
@@ -147,9 +161,20 @@ export default function DashboardPage() {
 
   return (
     <PinGate>
-    <div className="flex h-screen w-screen overflow-hidden bg-slate-950 text-slate-100 font-sans selection:bg-rose-500/30">
+    <div className="flex h-dvh w-full overflow-hidden bg-slate-950 text-slate-100 font-sans selection:bg-rose-500/30">
       {/* SECCIÓN IZQUIERDA: MAPA */}
-      <div className="flex-1 h-full relative">
+      <div className="flex-1 min-w-0 h-full relative">
+        <button
+          type="button"
+          onClick={() => setPanelAbierto((v) => !v)}
+          aria-expanded={panelAbierto}
+          aria-label={panelAbierto ? 'Cerrar panel de incidentes' : 'Abrir panel de incidentes'}
+          className="absolute bottom-6 right-4 z-[1000] flex items-center gap-2 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-xs font-black px-4 py-3 shadow-2xl border border-rose-300/40 active:scale-95 transition-all"
+        >
+          {panelAbierto ? <X className="w-4 h-4" /> : <List className="w-4 h-4" />}
+          <span>{panelAbierto ? 'Cerrar panel' : `Incidentes (${reportesFiltrados.length})`}</span>
+        </button>
+
         <header className="absolute top-4 left-16 z-[1000] bg-slate-900/80 backdrop-blur-md border border-white/10 px-4 py-2.5 rounded-2xl flex items-center gap-3 shadow-2xl">
           <div className="relative flex items-center justify-center">
             <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping absolute"></span>
@@ -182,16 +207,30 @@ export default function DashboardPage() {
       </div>
 
       {/* SECCIÓN DERECHA: PANEL LATERAL DE ALERTAS */}
-      <div className="w-[420px] h-full flex flex-col border-l border-white/10 bg-slate-900/90 backdrop-blur-xl z-10 shadow-2xl">
+      <div
+        className={`${
+          panelAbierto ? 'flex' : 'hidden'
+        } fixed inset-0 z-[1100] w-full md:static md:inset-auto md:z-10 md:w-[420px] md:shrink-0 h-full flex-col border-l border-white/10 bg-slate-900/95 md:bg-slate-900/90 backdrop-blur-xl shadow-2xl`}
+      >
         <div className="p-4 border-b border-white/10 space-y-3.5 bg-slate-950/40">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <h2 className="font-black text-sm flex items-center gap-2 text-white tracking-wide">
               <ShieldAlert className="w-4 h-4 text-rose-500" />
               COLA DE INCIDENTES
             </h2>
-            <span className="text-[11px] bg-slate-800 border border-white/10 text-slate-300 px-2.5 py-0.5 rounded-full font-bold">
-              {reportesFiltrados.length} visibles
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] bg-slate-800 border border-white/10 text-slate-300 px-2.5 py-0.5 rounded-full font-bold">
+                {reportesFiltrados.length} visibles
+              </span>
+              <button
+                type="button"
+                onClick={() => setPanelAbierto(false)}
+                aria-label="Cerrar panel de incidentes"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white active:scale-95 transition-all"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           {/* Filtros por Categoría */}
@@ -301,7 +340,10 @@ export default function DashboardPage() {
               return (
                 <div
                   key={rep.id}
-                  onClick={() => setAlertaEnfocada(rep)}
+                  onClick={() => {
+                    setAlertaEnfocada(rep);
+                    if (window.innerWidth < 768) setPanelAbierto(false);
+                  }}
                   className={`group relative p-3.5 rounded-2xl border transition-all cursor-pointer ${
                     rep.estado === 'ATENDIDA'
                       ? 'bg-slate-950/30 border-slate-800/40 opacity-50'
