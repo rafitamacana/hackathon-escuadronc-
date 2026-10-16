@@ -9,7 +9,7 @@ import {
   tomarCaso,
   soltarCaso,
   resolverCaso,
-} from "@/lib/asignaciones-stub";
+} from "@/lib/asignaciones";
 
 interface BotonCasoProps {
   reporte: Reporte;
@@ -46,19 +46,17 @@ export default function BotonCaso({ reporte, asignacion, onCambio }: BotonCasoPr
     setCargando(true);
     setMensaje("");
     try {
-      const res = await tomarCaso(reporte.id, rescatista.id, rescatista.nombre);
-      if (!res.ok) {
-        if (res.motivo === "ya_tomado") {
-          setMensaje("Este caso ya lo tomó otro equipo");
-        } else {
-          setMensaje("Error al tomar el caso");
-        }
+      await tomarCaso(reporte.id, rescatista.id, rescatista.nombre);
+      onCambio();
+    } catch (err) {
+      // el módulo real lanza un Error cuando el reporte ya fue tomado (código 23505)
+      const msg = err instanceof Error ? err.message : "";
+      if (msg.includes("ya fue tomado")) {
+        setMensaje("Este caso ya lo tomó otro equipo");
         onCambio();
       } else {
-        onCambio();
+        setMensaje("Error al tomar el caso");
       }
-    } catch {
-      setMensaje("Error de conexión");
     } finally {
       setCargando(false);
     }
@@ -68,7 +66,7 @@ export default function BotonCaso({ reporte, asignacion, onCambio }: BotonCasoPr
     if (!online || cargando || !asignacion) return;
     setCargando(true);
     try {
-      await resolverCaso(asignacion.id, rescatista.id);
+      await resolverCaso(asignacion.id, reporte.id);
       onCambio();
     } catch {
       setMensaje("Error al resolver");
@@ -81,7 +79,7 @@ export default function BotonCaso({ reporte, asignacion, onCambio }: BotonCasoPr
     if (!online || cargando || !asignacion) return;
     setCargando(true);
     try {
-      await soltarCaso(asignacion.id, rescatista.id);
+      await soltarCaso(asignacion.id, reporte.id);
       onCambio();
     } catch {
       setMensaje("Error al soltar");

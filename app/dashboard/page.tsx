@@ -16,7 +16,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { supabase, obtenerReportes, marcarAtendida } from '@/lib/supabase';
-import { getAsignacionesActivas } from '@/lib/asignaciones-stub';
+import { getAsignacionesActivas } from '@/lib/asignaciones';
 import PinGate from '@/components/PinGate';
 import BotonCaso from '@/components/BotonCaso';
 
