@@ -7,6 +7,7 @@ import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { marcarAtendida, supabase } from '../lib/supabase';
 import EmergencyReportModal from './EmergencyReportModal';
+import PendientesBadge from '@/components/PendientesBadge';
 import { Plus } from 'lucide-react';
 
 import {
@@ -621,6 +622,9 @@ export default function EmergencyMap() {
         <ShieldAlert className="w-4 h-4" />
         Soy rescatista →
       </Link>
+
+      {/* AVISO DE ALERTAS PENDIENTES DE ENVIAR (SIN INTERNET) */}
+      <PendientesBadge />
 
       {/* BOTTOM SHEET */}
       <footer className="absolute bottom-0 left-0 right-0 z-20 pointer-events-auto p-3">
