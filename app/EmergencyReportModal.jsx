@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { crearReporte, iniciarSync } from '../lib/sync';
+import React, { useEffect, useRef, useState } from 'react';
+import { crearReporte, guardarReporteLocal, iniciarSync } from '../lib/sync';
 import {
   HeartPulse,
   Droplets,
@@ -64,8 +64,30 @@ export default function EmergencyReportModal({ isOpen, onClose, userPos, onRepor
   // Estados para el espacio de mensaje de estado
   // 'idle' | 'submitting' | 'success' | 'error'
   const [status, setStatus] = useState({ state: 'idle', message: '' });
+  const pendingReportId = useRef(null);
+  const onCloseRef = useRef(onClose);
 
-  useEffect(() => iniciarSync(onReportSuccess), [onReportSuccess]);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => iniciarSync((sentIds) => {
+    if (onReportSuccess) onReportSuccess();
+
+    if (pendingReportId.current && sentIds.includes(pendingReportId.current)) {
+      pendingReportId.current = null;
+      setStatus({
+        state: 'success',
+        message: '¡Alerta enviada con éxito! Las cuadrillas de rescate han sido notificadas.'
+      });
+      setTimeout(() => {
+        setStatus({ state: 'idle', message: '' });
+        setDescription('');
+        setPeopleCount(1);
+        onCloseRef.current();
+      }, 1600);
+    }
+  }), [onReportSuccess]);
 
   if (!isOpen) return null;
 
@@ -83,13 +105,6 @@ export default function EmergencyReportModal({ isOpen, onClose, userPos, onRepor
       });
       return;
     }
-
-    setStatus({
-      state: 'submitting',
-      message: navigator.onLine
-        ? 'Transmitiendo reporte a unidades de auxilio...'
-        : 'Sin conexión. Guardando alerta en este dispositivo...'
-    });
 
     const databaseTypes = {
       medical: 'MEDICA',
@@ -110,6 +125,18 @@ export default function EmergencyReportModal({ isOpen, onClose, userPos, onRepor
     };
 
     try {
+      pendingReportId.current = reporte.id;
+
+      if (!navigator.onLine) {
+        await guardarReporteLocal(reporte);
+        setStatus({
+          state: 'queued',
+          message: 'Alerta guardada. Intentando transmitir y se enviará al recuperar internet...'
+        });
+        return;
+      }
+
+      setStatus({ state: 'submitting', message: 'Transmitiendo reporte a unidades de auxilio...' });
       const resultado = await crearReporte(reporte);
 
       setStatus({
@@ -120,6 +147,16 @@ export default function EmergencyReportModal({ isOpen, onClose, userPos, onRepor
       });
 
       if (resultado === 'enviado' && onReportSuccess) onReportSuccess();
+
+      if (resultado === 'local') {
+        setStatus({
+          state: 'queued',
+          message: 'Alerta guardada. Intentando transmitir hasta recuperar conexión...'
+        });
+        return;
+      }
+
+      pendingReportId.current = null;
 
       // Cierre automático tras confirmar envío
       setTimeout(() => {
@@ -256,6 +293,13 @@ export default function EmergencyReportModal({ isOpen, onClose, userPos, onRepor
               </div>
             )}
 
+            {status.state === 'queued' && (
+              <div className="w-full p-2.5 rounded-xl bg-sky-950/60 border border-sky-500/40 text-sky-300 text-xs flex items-center justify-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>{status.message}</span>
+              </div>
+            )}
+
             {status.state === 'success' && (
               <div className="w-full p-2.5 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs flex items-center justify-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
@@ -280,7 +324,7 @@ export default function EmergencyReportModal({ isOpen, onClose, userPos, onRepor
           {/* BOTÓN PRINCIPAL DE ACCIÓN */}
           <button
             type="submit"
-            disabled={status.state === 'submitting' || status.state === 'success'}
+            disabled={status.state === 'submitting' || status.state === 'queued' || status.state === 'success'}
             className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-extrabold text-sm tracking-wide uppercase flex items-center justify-center gap-2 shadow-lg shadow-rose-900/40 active:scale-[0.98] transition-all disabled:opacity-50"
           >
             <Send className="w-4 h-4" />
