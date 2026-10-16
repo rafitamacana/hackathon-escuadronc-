@@ -11,6 +11,9 @@ import {
   resolverCaso,
 } from "@/lib/asignaciones";
 
+const mensajeReporteTomado =
+  "Este reporte ya fue tomado por otro rescatista.";
+
 interface BotonCasoProps {
   reporte: Reporte;
   asignacion?: Asignacion | null;
@@ -48,14 +51,15 @@ export default function BotonCaso({ reporte, asignacion, onCambio }: BotonCasoPr
     try {
       await tomarCaso(reporte.id, rescatista.id, rescatista.nombre);
       onCambio();
-    } catch (err) {
-      // el módulo real lanza un Error cuando el reporte ya fue tomado (código 23505)
-      const msg = err instanceof Error ? err.message : "";
-      if (msg.includes("ya fue tomado")) {
-        setMensaje("Este caso ya lo tomó otro equipo");
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === mensajeReporteTomado
+      ) {
+        window.alert(error.message);
         onCambio();
       } else {
-        setMensaje("Error al tomar el caso");
+        setMensaje("Error de conexión");
       }
     } finally {
       setCargando(false);
@@ -154,6 +158,18 @@ export default function BotonCaso({ reporte, asignacion, onCambio }: BotonCasoPr
         {cargando ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserCheck className="w-3 h-3" />}
         Tomar caso
       </button>
+      {process.env.NODE_ENV === "development" && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            window.alert(mensajeReporteTomado);
+          }}
+          className="w-full py-1 px-2 text-slate-400 hover:text-slate-200 text-[10px] underline underline-offset-2"
+        >
+          Simular alerta (solo desarrollo)
+        </button>
+      )}
       {mensaje && (
         <p className="text-[10px] text-rose-400">{mensaje}</p>
       )}
