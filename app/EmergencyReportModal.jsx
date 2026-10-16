@@ -10,7 +10,8 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
-  Users
+  Users,
+  WifiOff
 } from 'lucide-react';
 
 const EMERGENCY_TYPES = [
@@ -70,6 +71,19 @@ export default function EmergencyReportModal({ isOpen, onClose, userPos, onRepor
   useEffect(() => {
     onCloseRef.current = onClose;
   }, [onClose]);
+
+  // detecta si el celular está sin internet para avisarlo antes de enviar
+  const [offline, setOffline] = useState(false);
+  useEffect(() => {
+    const update = () => setOffline(!navigator.onLine);
+    update();
+    window.addEventListener('online', update);
+    window.addEventListener('offline', update);
+    return () => {
+      window.removeEventListener('online', update);
+      window.removeEventListener('offline', update);
+    };
+  }, []);
 
   useEffect(() => iniciarSync((sentIds) => {
     if (onReportSuccess) onReportSuccess();
@@ -131,7 +145,7 @@ export default function EmergencyReportModal({ isOpen, onClose, userPos, onRepor
         await guardarReporteLocal(reporte);
         setStatus({
           state: 'queued',
-          message: 'Alerta guardada. Intentando transmitir y se enviará al recuperar internet...'
+          message: 'Sin internet: tu alerta quedó guardada en este celular y se enviará automáticamente cuando vuelva la conexión.'
         });
         return;
       }
@@ -151,7 +165,7 @@ export default function EmergencyReportModal({ isOpen, onClose, userPos, onRepor
       if (resultado === 'local') {
         setStatus({
           state: 'queued',
-          message: 'Alerta guardada. Intentando transmitir hasta recuperar conexión...'
+          message: 'Sin señal: tu alerta quedó guardada en este celular y se enviará automáticamente cuando tengas internet.'
         });
         return;
       }
@@ -294,9 +308,20 @@ export default function EmergencyReportModal({ isOpen, onClose, userPos, onRepor
             )}
 
             {status.state === 'queued' && (
-              <div className="w-full p-2.5 rounded-xl bg-sky-950/60 border border-sky-500/40 text-sky-300 text-xs flex items-center justify-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>{status.message}</span>
+              <div
+                role="alert"
+                className="w-full p-3.5 rounded-2xl bg-amber-950/80 border-2 border-amber-400/70 text-amber-100 text-sm flex items-start gap-3 shadow-lg"
+              >
+                <WifiOff className="w-6 h-6 text-amber-300 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-black uppercase tracking-wide text-amber-200">
+                    Alerta guardada, aún no enviada
+                  </p>
+                  <p className="text-xs leading-snug">{status.message}</p>
+                  <p className="text-xs font-bold text-amber-300">
+                    No cierres sesión ni borres los datos; si es muy urgente llama al 911.
+                  </p>
+                </div>
               </div>
             )}
 
@@ -314,7 +339,16 @@ export default function EmergencyReportModal({ isOpen, onClose, userPos, onRepor
               </div>
             )}
 
-            {status.state === 'idle' && (
+            {status.state === 'idle' && offline && (
+              <div className="w-full p-3 rounded-2xl bg-amber-950/70 border border-amber-400/60 text-amber-100 text-xs flex items-start gap-2.5">
+                <WifiOff className="w-5 h-5 text-amber-300 shrink-0" />
+                <span>
+                  <strong className="font-black">Estás sin internet.</strong> Puedes emitir la alerta: se guardará en tu celular y se enviará sola cuando tengas conexión.
+                </span>
+              </div>
+            )}
+
+            {status.state === 'idle' && !offline && (
               <p className="text-[11px] text-slate-400 text-center">
                 El envío transmitirá tus coordenadas GPS exactas a la base de datos de auxilio.
               </p>
@@ -322,14 +356,30 @@ export default function EmergencyReportModal({ isOpen, onClose, userPos, onRepor
           </div>
 
           {/* BOTÓN PRINCIPAL DE ACCIÓN */}
+          {status.state === 'queued' ? (
+            <button
+              type="button"
+              onClick={() => {
+                pendingReportId.current = null;
+                setStatus({ state: 'idle', message: '' });
+                setDescription('');
+                setPeopleCount(1);
+                onClose();
+              }}
+              className="w-full py-3.5 px-4 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-sm tracking-wide uppercase flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-all"
+            >
+              Entendido, se enviará con internet
+            </button>
+          ) : (
           <button
             type="submit"
-            disabled={status.state === 'submitting' || status.state === 'queued' || status.state === 'success'}
+            disabled={status.state === 'submitting' || status.state === 'success'}
             className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-extrabold text-sm tracking-wide uppercase flex items-center justify-center gap-2 shadow-lg shadow-rose-900/40 active:scale-[0.98] transition-all disabled:opacity-50"
           >
             <Send className="w-4 h-4" />
-            <span>Emitir Alerta Inmediata</span>
+            <span>{offline ? 'Guardar alerta (se enviará con internet)' : 'Emitir Alerta Inmediata'}</span>
           </button>
+          )}
         </form>
       </div>
     </div>
