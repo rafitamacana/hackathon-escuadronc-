@@ -22,7 +22,9 @@ export default function PinGate({ children }: PinGateProps) {
 
   // al montar, checa si ya se habia autenticado
   useEffect(() => {
-    const guardado = localStorage.getItem(OK_KEY);
+    // limpia el flag viejo que se guardaba para siempre en localStorage
+    localStorage.removeItem(OK_KEY);
+    const guardado = sessionStorage.getItem(OK_KEY);
     if (guardado === "1") {
       setAutorizado(true);
     }
@@ -46,7 +48,7 @@ export default function PinGate({ children }: PinGateProps) {
       setError("Indica a qué brigada perteneces.");
       return;
     }
-    localStorage.setItem(OK_KEY, "1");
+    sessionStorage.setItem(OK_KEY, "1");
     setNombreRescatista(brigada);
     setAutorizado(true);
   };
