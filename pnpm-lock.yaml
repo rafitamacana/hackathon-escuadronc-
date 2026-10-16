@@ -166,15 +166,12 @@ importers:
 
   .:
     dependencies:
-<<<<<<< HEAD
-      '@supabase/ssr':
-        specifier: ^0.12.7
-        version: 0.12.7(@supabase/supabase-js@2.117.3)
-=======
       '@ducanh2912/next-pwa':
         specifier: ^10.2.9
         version: 10.2.9(next@16.4.1(@babel/core@7.29.7(supports-color@7.2.0))(@types/node@20.19.43)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(supports-color@7.2.0)(webpack@5.111.1(lightningcss@1.32.0)(postcss@8.5.23)(sharp@0.35.5(@types/node@20.19.43)))
->>>>>>> main
+      '@supabase/ssr':
+        specifier: ^0.12.7
+        version: 0.12.7(@supabase/supabase-js@2.117.3)
       '@supabase/supabase-js':
         specifier: ^2.117.3
         version: 2.117.3
@@ -1779,15 +1776,13 @@ packages:
   convert-source-map@2.0.0:
     resolution: {integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==}
 
-<<<<<<< HEAD
   cookie@1.1.1:
     resolution: {integrity: sha512-ei8Aos7ja0weRpFzJnEA9UHJ/7XQmqglbRwnf2ATjcB9Wq874VKH9kfjjirM6UhU2/E5fFYadylyhFldcqSidQ==}
     engines: {node: '>=18'}
-=======
+
   core-js-compat@3.50.0:
     resolution: {integrity: sha512-XGpFGbMLHwSt74YLTKho7Ib242qi6O8MSX+sRokV4oz7iKXvQWGYZthjIhjRGMxjzVkAubBO512dKGYcefmX3Q==}
     engines: {node: '>=6.4.0'}
->>>>>>> main
 
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
@@ -5035,13 +5030,11 @@ snapshots:
 
   convert-source-map@2.0.0: {}
 
-<<<<<<< HEAD
   cookie@1.1.1: {}
-=======
+
   core-js-compat@3.50.0:
     dependencies:
       browserslist: 4.29.3
->>>>>>> main
 
   cross-spawn@7.0.6:
     dependencies:
