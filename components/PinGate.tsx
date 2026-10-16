@@ -33,15 +33,20 @@ export default function PinGate({ children }: PinGateProps) {
     e.preventDefault();
     setError("");
 
-    const pinCorrecto = process.env.NEXT_PUBLIC_PIN_RESCATISTA || "";
+    // PIN por defecto 1009 si no hay variable de entorno
+    const pinCorrecto = process.env.NEXT_PUBLIC_PIN_RESCATISTA || "1009";
     if (pin.trim() !== pinCorrecto) {
       setError("Código incorrecto. Verifica con tu coordinador.");
       return;
     }
 
-    const nombreFinal = alias.trim() || "Rescatista";
+    const brigada = alias.trim();
+    if (brigada.length < 2) {
+      setError("Indica a qué brigada perteneces.");
+      return;
+    }
     localStorage.setItem(OK_KEY, "1");
-    setNombreRescatista(nombreFinal);
+    setNombreRescatista(brigada);
     setAutorizado(true);
   };
 
@@ -75,7 +80,7 @@ export default function PinGate({ children }: PinGateProps) {
             Acceso Rescatistas
           </h1>
           <p className="text-xs text-slate-400">
-            Ingresa el código y tu alias de equipo
+            Ingresa el código y tu brigada
           </p>
         </div>
 
@@ -91,6 +96,8 @@ export default function PinGate({ children }: PinGateProps) {
             onChange={(e) => setPin(e.target.value)}
             placeholder="Ingresa el código"
             autoComplete="off"
+            inputMode="numeric"
+            required
             className="w-full bg-slate-950/70 text-white placeholder-slate-500 text-sm rounded-xl px-4 py-3 border border-slate-700 focus:outline-none focus:border-rose-500 transition-colors"
           />
         </div>
@@ -98,7 +105,7 @@ export default function PinGate({ children }: PinGateProps) {
         {/* campo del alias */}
         <div>
           <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-            Alias de equipo
+            Brigada
           </label>
           <input
             type="text"
@@ -106,6 +113,7 @@ export default function PinGate({ children }: PinGateProps) {
             onChange={(e) => setAlias(e.target.value)}
             placeholder='Ej. "Brigada Norte"'
             autoComplete="off"
+            required
             className="w-full bg-slate-950/70 text-white placeholder-slate-500 text-sm rounded-xl px-4 py-3 border border-slate-700 focus:outline-none focus:border-sky-500 transition-colors"
           />
         </div>
