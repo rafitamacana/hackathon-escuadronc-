@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { supabase } from '../lib/supabase';
+import { marcarAtendida, supabase } from '../lib/supabase';
 import EmergencyReportModal from './EmergencyReportModal';
 import { Plus } from 'lucide-react';
 
@@ -132,6 +132,8 @@ export default function EmergencyMap() {
   const [selectedPoint, setSelectedPoint] = useState<any | null>(null);
   const [isGpsLocked, setIsGpsLocked] = useState(true);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
+  const [isCancellingEmergency, setIsCancellingEmergency] = useState(false);
+  const [cancellationError, setCancellationError] = useState('');
 
   // Estados de la base de datos
   const [emergencies, setEmergencies] = useState<MapPoint[]>([]);
@@ -343,6 +345,7 @@ export default function EmergencyMap() {
 
       el.addEventListener('click', (e) => {
         e.stopPropagation();
+        setCancellationError('');
         setSelectedPoint({ ...item, isEmergency: isEmergencyMode });
         setIsGpsLocked(false);
 
@@ -407,6 +410,27 @@ export default function EmergencyMap() {
       });
       setIsGpsLocked(true);
       setSelectedPoint(null);
+    }
+  };
+
+  const handleCancelEmergency = async () => {
+    if (!selectedPoint?.isEmergency || isCancellingEmergency) return;
+    if (!window.confirm('¿Cancelar esta emergencia? El reporte se marcará como atendido y se quitará del mapa.')) {
+      return;
+    }
+
+    setIsCancellingEmergency(true);
+    setCancellationError('');
+
+    try {
+      await marcarAtendida(selectedPoint.id);
+      setEmergencies((current) => current.filter((emergency) => emergency.id !== selectedPoint.id));
+      setSelectedPoint(null);
+    } catch (err) {
+      console.error('Error al cancelar la emergencia:', err);
+      setCancellationError('No se pudo cancelar la emergencia. Intenta nuevamente.');
+    } finally {
+      setIsCancellingEmergency(false);
     }
   };
 
@@ -526,6 +550,7 @@ export default function EmergencyMap() {
                     type="button"
                     onClick={() => {
                       const isEmergency = viewMode === 'emergencies';
+                      setCancellationError('');
                       setSelectedPoint({ ...item, isEmergency });
                       setIsGpsLocked(false);
                       setIsListOpen(false);
@@ -613,7 +638,10 @@ export default function EmergencyMap() {
               <div className="text-right">
                 <button
                   type="button"
-                  onClick={() => setSelectedPoint(null)}
+                  onClick={() => {
+                    setCancellationError('');
+                    setSelectedPoint(null);
+                  }}
                   className="ml-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-slate-300 transition-colors hover:bg-slate-700 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
                   aria-label="Cerrar información del punto"
                 >
@@ -635,6 +663,24 @@ export default function EmergencyMap() {
             <p className="text-xs text-slate-300 mb-3 bg-slate-900/60 p-2.5 rounded-xl border border-white/5">
               {selectedPoint.detail}
             </p>
+
+            {selectedPoint.isEmergency && (
+              <>
+                {cancellationError && (
+                  <p role="alert" className="mb-2 text-xs text-rose-300">
+                    {cancellationError}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={handleCancelEmergency}
+                  disabled={isCancellingEmergency}
+                  className="mb-2 w-full rounded-xl border border-rose-500/40 bg-rose-950/60 px-3 py-2.5 text-xs font-semibold text-rose-200 transition-colors hover:bg-rose-900/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 disabled:cursor-wait disabled:opacity-60"
+                >
+                  {isCancellingEmergency ? 'Cancelando emergencia...' : 'Cancelar emergencia'}
+                </button>
+              </>
+            )}
 
             <div className="grid grid-cols-2 gap-2">
               {selectedPoint.phone ? (
