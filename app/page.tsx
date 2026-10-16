@@ -1,9 +1,12 @@
 'use client';
 
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { supabase } from './conexion';
+import EmergencyReportModal from './EmergencyReportModal';
+import { Plus } from 'lucide-react';
 
 import {
   AlertTriangle,
@@ -18,7 +21,6 @@ import {
 
 const OPENFREEMAP_DARK_STYLE = 'https://tiles.openfreemap.org/styles/dark';
 const DEFAULT_FALLBACK_COORDS = { lat: 25.7904, lng: -108.9959, accuracy: 20 };
-
 maplibregl.setWorkerUrl(
   `https://unpkg.com/maplibre-gl@${maplibregl.getVersion()}/dist/maplibre-gl-worker.mjs`
 );
@@ -42,6 +44,7 @@ export default function EmergencyMap() {
   const userMarkerRef = useRef<any>(null);
   const activeMarkersRef = useRef<any[]>([]);
 
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'emergencies' | 'support'>('emergencies');
   const [userPos, setUserPos] = useState<any>(DEFAULT_FALLBACK_COORDS);
   const [selectedPoint, setSelectedPoint] = useState<any | null>(null);
@@ -359,6 +362,15 @@ export default function EmergencyMap() {
         </div>
       </header>
 
+      {/* BOTÓN FLOTANTE PARA REPORTAR EMERGENCIA */}
+      <button
+        onClick={() => setIsReportModalOpen(true)}
+        className="absolute left-4 bottom-32 z-10 px-4 py-3 rounded-full shadow-2xl bg-gradient-to-r from-rose-600 to-red-600 text-white font-black text-xs flex items-center gap-2 border border-red-400 active:scale-95 tracking-wider uppercase shadow-red-950/60"
+      >
+        <Plus className="w-4 h-4" />
+        <span>Reportar</span>
+      </button>
+
       {/* BOTÓN RECENTRAR GPS */}
       <button
         onClick={handleRecenter}
@@ -450,6 +462,12 @@ export default function EmergencyMap() {
           </div>
         )}
       </footer>
+      <EmergencyReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        userPos={userPos}
+        onReportSuccess={fetchData}
+      />
     </div>
   );
 }
