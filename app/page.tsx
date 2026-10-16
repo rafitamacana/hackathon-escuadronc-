@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { supabase } from './conexion';
+import { supabase } from '../lib/supabase';
 import EmergencyReportModal from './EmergencyReportModal';
 import { Plus } from 'lucide-react';
 

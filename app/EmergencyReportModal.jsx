@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from './conexion';
+import { supabase } from '../lib/supabase';
 import {
   HeartPulse,
   Droplets,
