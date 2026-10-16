@@ -20,6 +20,7 @@ import {
 import { supabase, obtenerReportes, marcarAtendida } from '@/lib/supabase';
 import { getAsignacionesActivas } from '@/lib/asignaciones';
 import PinGate from '@/components/PinGate';
+import { getRescatista } from '@/lib/rescatista';
 import BotonCaso from '@/components/BotonCaso';
 
 const Mapa = dynamic(() => import('@/components/dashboard/Mapa'), {
@@ -55,6 +56,14 @@ export default function DashboardPage() {
   useEffect(() => {
     window.dispatchEvent(new Event('resize'));
   }, [panelAbierto]);
+
+  // vista del panel: todos los incidentes o solo los que yo tomé
+  const [vista, setVista] = useState<'todos' | 'mios'>('todos');
+  const [miId, setMiId] = useState<string>('');
+
+  useEffect(() => {
+    setMiId(getRescatista().id);
+  }, []);
 
   // asignaciones de casos a rescatistas
   const [asignaciones, setAsignaciones] = useState<Asignacion[]>([]);
@@ -148,6 +157,17 @@ export default function DashboardPage() {
     });
   }, [reportes, filtroTipo, filtroEstado]);
 
+  // casos que este rescatista tomó (en camino o resueltos)
+  const misReportes = useMemo(() => {
+    if (!miId) return [] as Reporte[];
+    return reportes.filter((rep) => {
+      const a = asignacionPorReporte.get(rep.id);
+      return !!a && a.rescatista_id === miId;
+    });
+  }, [reportes, asignacionPorReporte, miId]);
+
+  const listaVisible = vista === 'mios' ? misReportes : reportesFiltrados;
+
   const conteoTipos = useMemo(() => {
     const act = reportes.filter((r) => r.estado !== 'ATENDIDA');
     return {
@@ -200,7 +220,7 @@ export default function DashboardPage() {
         </header>
 
         <Mapa
-          reportes={reportesFiltrados}
+          reportes={listaVisible}
           onMarcarAtendida={handleMarcarAtendida}
           alertaSeleccionada={alertaEnfocada}
         />
@@ -220,7 +240,7 @@ export default function DashboardPage() {
             </h2>
             <div className="flex items-center gap-2">
               <span className="text-[11px] bg-slate-800 border border-white/10 text-slate-300 px-2.5 py-0.5 rounded-full font-bold">
-                {reportesFiltrados.length} visibles
+                {listaVisible.length} visibles
               </span>
               <button
                 type="button"
@@ -233,6 +253,33 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/* Pestañas: todos / mis casos */}
+          <div className="grid grid-cols-2 gap-1 bg-slate-950/80 p-1 rounded-xl border border-white/5 text-[11px] font-black">
+            <button
+              type="button"
+              onClick={() => setVista('todos')}
+              className={`py-2 rounded-lg transition-all ${
+                vista === 'todos'
+                  ? 'bg-slate-700 text-white shadow border border-white/10'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Todos ({reportesFiltrados.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setVista('mios')}
+              className={`py-2 rounded-lg transition-all ${
+                vista === 'mios'
+                  ? 'bg-rose-600 text-white shadow border border-rose-300/40'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Mis casos ({misReportes.length})
+            </button>
+          </div>
+
+          {vista === 'todos' && (<>
           {/* Filtros por Categoría */}
           <div className="grid grid-cols-5 gap-1.5">
             <button
@@ -312,6 +359,7 @@ export default function DashboardPage() {
               </button>
             ))}
           </div>
+          </>)}
         </div>
 
         {/* Lista de incidentes */}
@@ -321,18 +369,20 @@ export default function DashboardPage() {
               <Loader2 className="w-5 h-5 animate-spin text-rose-500" />
               <span>Sincronizando reportes...</span>
             </div>
-          ) : reportesFiltrados.length === 0 ? (
+          ) : listaVisible.length === 0 ? (
             <div className="h-48 flex flex-col items-center justify-center text-center text-xs text-slate-500 p-5 border border-dashed border-slate-800 rounded-3xl">
               <CheckCircle2 className="w-8 h-8 text-emerald-500/40 mb-2" />
               <span className="font-semibold text-slate-400">
-                Zona despejada de emergencias
+                {vista === 'mios' ? 'Aún no has tomado ningún caso' : 'Zona despejada de emergencias'}
               </span>
               <span className="text-[10px] text-slate-500 mt-0.5">
-                No hay incidentes activos en este filtro
+                {vista === 'mios'
+                  ? 'Toma un caso desde la pestaña Todos'
+                  : 'No hay incidentes activos en este filtro'}
               </span>
             </div>
           ) : (
-            reportesFiltrados.map((rep) => {
+            listaVisible.map((rep) => {
               const esMedica = rep.tipo_emergencia === 'MEDICA';
               const esAgua = rep.tipo_emergencia === 'AGUA';
               const esRescate = rep.tipo_emergencia === 'RESCATE';
@@ -425,7 +475,7 @@ export default function DashboardPage() {
                       </button>
                     </div>
 
-                    {rep.estado !== 'ATENDIDA' && (
+                    {(rep.estado !== 'ATENDIDA' || vista === 'mios') && (
                       <div className="mt-2 pt-2 border-t border-white/5">
                         <BotonCaso
                           reporte={rep}
