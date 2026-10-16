@@ -1,6 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Reporte } from "@/types/reporte";
 
+export interface ColumnaReporte {
+  column_name: string;
+  data_type: string;
+}
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
@@ -49,4 +54,15 @@ export async function marcarAtendida(id: string): Promise<Reporte> {
   }
 
   return data as Reporte;
+}
+
+export async function obtenerColumnasReportes(): Promise<ColumnaReporte[]> {
+  const { data, error } = await supabase.rpc("obtener_columnas_reportes");
+
+  if (error) {
+    console.error("Error al consultar estructura de columnas:", error.message);
+    throw error;
+  }
+
+  return (data as ColumnaReporte[]) ?? [];
 }
