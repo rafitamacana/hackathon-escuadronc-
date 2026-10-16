@@ -1,0 +1,39 @@
+Errores encontrados en package.json
+==================================
+
+Archivo analizado: package.json
+
+1. Conflicto de merge sin resolver (líneas 16-19)
+------------------------------------------------
+El archivo contiene marcadores de Git:
+
+<<<<<<< HEAD
+    "maplibre-gl": "^6.14.0",
+=======
+>>>>>>> main
+
+Estos marcadores no pertenecen al formato JSON. Mientras permanezcan ahí,
+package.json no es un manifiesto JSON válido y las herramientas que lo lean,
+como pnpm, pueden fallar al procesarlo.
+
+2. La dependencia de MapLibre está en el lado conservado del conflicto
+----------------------------------------------------------------------
+La aplicación importa "maplibre-gl" desde app/page.tsx. El lado HEAD del
+conflicto conserva la dependencia:
+
+    "maplibre-gl": "^6.14.0"
+
+Al resolver el conflicto, conviene mantener esa dependencia y eliminar
+únicamente los marcadores de Git. Si se elimina también la dependencia,
+la aplicación podría no resolver ese paquete durante la compilación o
+ejecución.
+
+Acción recomendada
+------------------
+Resolver el conflicto dejando una entrada JSON válida para "maplibre-gl"
+y quitando las líneas <<<<<<< HEAD, ======= y >>>>>>> main. Después,
+validar el manifiesto y ejecutar la instalación/build del proyecto.
+
+Nota
+----
+Este informe documenta el problema detectado; no modifica package.json.
