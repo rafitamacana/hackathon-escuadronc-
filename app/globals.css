@@ -38,8 +38,9 @@ html, body, #root {
 }
 
 .app-viewport {
+  height: 100vh;
   height: 100dvh;
-  width: 100vw;
+  width: 100%;
   position: relative;
   overflow: hidden;
   display: flex;
