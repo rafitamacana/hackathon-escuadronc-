@@ -11,10 +11,11 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-export async function enviarReporte(reporte: Reporte): Promise<Reporte> {
+export async function enviarReporte(reporte: Reporte, signal?: AbortSignal): Promise<Reporte> {
   const { data, error } = await supabase
     .from("reportes")
     .upsert([reporte])
+    .abortSignal(signal ?? new AbortController().signal)
     .select()
     .single();
 
