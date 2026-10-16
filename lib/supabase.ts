@@ -1,87 +1,50 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from "@supabase/supabase-js";
+import type { Reporte } from "@/types/reporte";
 
-export type TipoEmergencia = 'MEDICA' | 'AGUA' | 'RESCATE' | 'OTRO';
-export type EstadoReporte = 'PENDIENTE' | 'EN_PROCESO' | 'ATENDIDA';
-
-export interface Reporte {
-  id: string;
-  tipo_emergencia: TipoEmergencia;
-  latitud: number;
-  longitud: number;
-  descripcion?: string | null;
-  personas_afectadas: number;
-  estado: EstadoReporte;
-  created_at: string;
-}
-
-export type NuevoReporte = {
-  id?: string;
-  tipo_emergencia: TipoEmergencia;
-  latitud: number;
-  longitud: number;
-  descripcion?: string;
-  personas_afectadas?: number;
-  estado?: EstadoReporte;
-  created_at?: string;
-};
-
-
-const metaEnv = (import.meta as any).env || {};
-
-const supabaseUrl = metaEnv.VITE_SUPABASE_URL || 'https://doywsoxbtjeodvnstdve.supabase.co';
-const supabaseAnonKey = metaEnv.VITE_SUPABASE_ANON_KEY || 'sb_publishable_H2TDEHP8I3HxgCTbfQT9Xw_FDvz72PH';
-
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-
-export async function enviarReporte(reporte: NuevoReporte): Promise<Reporte> {
+export async function enviarReporte(reporte: Reporte): Promise<Reporte> {
   const { data, error } = await supabase
-    .from('reportes')
-    .upsert([
-      {
-        ...reporte,
-        personas_afectadas: reporte.personas_afectadas ?? 1,
-        estado: reporte.estado ?? 'PENDIENTE',
-      },
-    ])
+    .from("reportes")
+    .upsert([reporte])
     .select()
     .single();
 
   if (error) {
-    console.error('Error al enviar reporte a Supabase:', error.message);
+    console.error("Error al enviar reporte a Supabase:", error.message);
     throw error;
   }
 
   return data as Reporte;
 }
 
-
 export async function obtenerReportes(): Promise<Reporte[]> {
   const { data, error } = await supabase
-    .from('reportes')
-    .select('*')
-    .order('created_at', { ascending: false });
+    .from("reportes")
+    .select("*")
+    .order("created_at", { ascending: false });
 
   if (error) {
-    console.error('Error al obtener reportes:', error.message);
+    console.error("Error al obtener reportes:", error.message);
     throw error;
   }
 
   return (data as Reporte[]) ?? [];
 }
 
-
 export async function marcarAtendida(id: string): Promise<Reporte> {
   const { data, error } = await supabase
-    .from('reportes')
-    .update({ estado: 'ATENDIDA' })
-    .eq('id', id)
+    .from("reportes")
+    .update({ estado: "ATENDIDA" })
+    .eq("id", id)
     .select()
     .single();
 
   if (error) {
-    console.error(`Error al marcar reporte ${id} como atendido:`, error.message);
+    console.error(`Error al marcar reporte ${id} como atendida:`, error.message);
     throw error;
   }
 
