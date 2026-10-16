@@ -21,6 +21,85 @@ import {
 
 const OPENFREEMAP_DARK_STYLE = 'https://tiles.openfreemap.org/styles/dark';
 const DEFAULT_FALLBACK_COORDS = { lat: 25.7904, lng: -108.9959, accuracy: 20 };
+
+type TipoEmergencia = 'MEDICA' | 'AGUA' | 'RESCATE' | 'OTRO';
+type EstadoReporte = 'PENDIENTE' | 'EN_PROCESO' | 'ATENDIDA';
+
+interface EmergencyRow {
+  id: string;
+  tipo_emergencia: TipoEmergencia;
+  latitud: number;
+  longitud: number;
+  descripcion: string | null;
+  personas_afectadas: number;
+  estado: EstadoReporte;
+  created_at: string;
+}
+
+interface SupportCenterRow {
+  id: string;
+  nombre: string;
+  tipo: string;
+  direccion: string;
+  latitud: number;
+  longitud: number;
+  capacidad_total: number | null;
+  ocupacion_actual: number | null;
+  estado: 'DISPONIBLE' | 'SATURADO' | 'CERRADO';
+  servicios: string[] | null;
+  contacto: string | null;
+}
+
+interface MapPoint {
+  id: string;
+  title: string;
+  type: string;
+  lat: number;
+  lng: number;
+  address: string;
+  detail: string;
+  status?: string;
+  phone?: string | null;
+  severity?: string;
+}
+
+const mapEmergency = (row: EmergencyRow): MapPoint => {
+  const emergencyTypes: Record<TipoEmergencia, string> = {
+    MEDICA: 'medical',
+    AGUA: 'water',
+    RESCATE: 'rescue',
+    OTRO: 'other'
+  };
+
+  return {
+    id: row.id,
+    title: `Emergencia: ${row.tipo_emergencia}`,
+    type: emergencyTypes[row.tipo_emergencia],
+    lat: row.latitud,
+    lng: row.longitud,
+    address: `Cerca de lat: ${row.latitud.toFixed(4)}, lng: ${row.longitud.toFixed(4)}`,
+    detail: `[Personas involucradas: ${row.personas_afectadas}] ${row.descripcion || 'Sin descripción adicional'}`,
+    status: row.estado,
+    severity: row.estado
+  };
+};
+
+const mapSupportCenter = (row: SupportCenterRow): MapPoint => ({
+  id: row.id,
+  title: row.nombre,
+  type: row.tipo.toLowerCase(),
+  lat: row.latitud,
+  lng: row.longitud,
+  address: row.direccion,
+  detail: [
+    `Estado: ${row.estado}`,
+    row.capacidad_total !== null ? `Capacidad: ${row.ocupacion_actual ?? 0}/${row.capacidad_total}` : '',
+    row.servicios?.length ? `Servicios: ${row.servicios.join(', ')}` : ''
+  ].filter(Boolean).join(' · '),
+  status: row.estado,
+  phone: row.contacto
+});
+
 maplibregl.setWorkerUrl(
   `https://unpkg.com/maplibre-gl@${maplibregl.getVersion()}/dist/maplibre-gl-worker.mjs`
 );
@@ -49,10 +128,11 @@ export default function EmergencyMap() {
   const [userPos, setUserPos] = useState<any>(DEFAULT_FALLBACK_COORDS);
   const [selectedPoint, setSelectedPoint] = useState<any | null>(null);
   const [isGpsLocked, setIsGpsLocked] = useState(true);
+  const [isMapLoaded, setIsMapLoaded] = useState(false);
 
   // Estados de la base de datos
-  const [emergencies, setEmergencies] = useState<any[]>([]);
-  const [supportCenters, setSupportCenters] = useState<any[]>([]);
+  const [emergencies, setEmergencies] = useState<MapPoint[]>([]);
+  const [supportCenters, setSupportCenters] = useState<MapPoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // 1. Carga inicial de datos desde Supabase
@@ -60,18 +140,27 @@ export default function EmergencyMap() {
     try {
       const [emergenciesRes, centersRes] = await Promise.all([
         supabase
-          .from('emergencies')
+          .from('reportes')
           .select('*')
-          .eq('is_active', true)
+          .neq('estado', 'ATENDIDA')
           .order('created_at', { ascending: false }),
         supabase
-          .from('support_centers')
+          .from('centros_apoyo')
           .select('*')
-          .eq('is_active', true)
+          .neq('estado', 'CERRADO')
       ]);
 
-      if (emergenciesRes.data) setEmergencies(emergenciesRes.data);
-      if (centersRes.data) setSupportCenters(centersRes.data);
+      if (emergenciesRes.error) {
+        console.error('Error al consultar reportes en Supabase:', emergenciesRes.error.message);
+      } else {
+        setEmergencies((emergenciesRes.data as EmergencyRow[]).map(mapEmergency));
+      }
+
+      if (centersRes.error) {
+        console.error('Error al consultar centros de apoyo en Supabase:', centersRes.error.message);
+      } else {
+        setSupportCenters((centersRes.data as SupportCenterRow[]).map(mapSupportCenter));
+      }
     } catch (err) {
       console.error('Error al consultar Supabase:', err);
     } finally {
@@ -87,15 +176,19 @@ export default function EmergencyMap() {
       .channel('realtime_emergency_map')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'emergencies' },
+        { event: '*', schema: 'public', table: 'reportes' },
         () => fetchData()
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'support_centers' },
+        { event: '*', schema: 'public', table: 'centros_apoyo' },
         () => fetchData()
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.error('Error en la suscripción Realtime de Supabase:', err ?? status);
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
@@ -115,6 +208,19 @@ export default function EmergencyMap() {
     });
 
     mapRef.current = map;
+    const transparentPixel = {
+      width: 1,
+      height: 1,
+      data: new Uint8Array(4)
+    };
+
+    map.setMissingStyleImageResolver((id) => {
+      if (id === 'wood-pattern' && !map.hasImage(id)) {
+        map.addImage(id, transparentPixel);
+      }
+    });
+
+    map.on('load', () => setIsMapLoaded(true));
 
     const userEl = document.createElement('div');
     userEl.className = 'user-marker-container';
@@ -194,7 +300,7 @@ export default function EmergencyMap() {
 
   // 5. Renderizar marcadores dinámicos traídos desde la base de datos
   useEffect(() => {
-    if (!mapRef.current) return;
+    if (!mapRef.current || !isMapLoaded) return;
 
     activeMarkersRef.current.forEach((m) => m.remove());
     activeMarkersRef.current = [];
@@ -206,7 +312,7 @@ export default function EmergencyMap() {
       const el = document.createElement('div');
       el.className = `event-pin ${
         isEmergencyMode
-          ? item.type === 'fire'
+          ? item.type === 'rescue'
             ? 'bg-rose-600 pin-critical'
             : item.type === 'medical'
             ? 'bg-red-500'
@@ -219,11 +325,13 @@ export default function EmergencyMap() {
       }`;
 
       el.innerText = isEmergencyMode
-        ? item.type === 'fire'
-          ? '🔥'
+        ? item.type === 'rescue'
+        ? '🛟'
           : item.type === 'medical'
           ? '🚑'
-          : '⚠️'
+        : item.type === 'water'
+        ? '💧'
+        : '⚠️'
         : item.type === 'hospital'
         ? '🏥'
         : item.type === 'fire_station'
@@ -248,7 +356,7 @@ export default function EmergencyMap() {
 
       activeMarkersRef.current.push(marker);
     });
-  }, [viewMode, emergencies, supportCenters]);
+  }, [viewMode, emergencies, supportCenters, isMapLoaded]);
 
   // 6. Actualización de línea vectorial hacia el objetivo
   useEffect(() => {

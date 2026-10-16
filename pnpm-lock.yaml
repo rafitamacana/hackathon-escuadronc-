@@ -178,12 +178,9 @@ importers:
       lucide-react:
         specifier: ^1.57.0
         version: 1.57.0(@types/react@19.3.0)(react@19.3.0)
-<<<<<<< HEAD
       maplibre-gl:
         specifier: ^6.14.0
         version: 6.14.0
-=======
->>>>>>> main
       next:
         specifier: 16.4.1
         version: 16.4.1(@babel/core@7.29.7(supports-color@7.2.0))(@types/node@20.19.43)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)

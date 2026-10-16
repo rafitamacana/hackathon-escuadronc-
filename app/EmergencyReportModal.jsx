@@ -70,7 +70,11 @@ export default function EmergencyReportModal({ isOpen, onClose, userPos, onRepor
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!userPos || !userPos.lat || !userPos.lng) {
+    if (
+      !userPos ||
+      !Number.isFinite(userPos.lat) ||
+      !Number.isFinite(userPos.lng)
+    ) {
       setStatus({
         state: 'error',
         message: 'No se detectó señal de GPS válida para georreferenciar el reporte.'
@@ -80,21 +84,24 @@ export default function EmergencyReportModal({ isOpen, onClose, userPos, onRepor
 
     setStatus({ state: 'submitting', message: 'Transmitiendo reporte a unidades de auxilio...' });
 
-    const selectedConfig = EMERGENCY_TYPES.find((t) => t.id === selectedType);
+    const databaseTypes = {
+      medical: 'MEDICA',
+      water: 'AGUA',
+      rescue: 'RESCATE',
+      other: 'OTRO'
+    };
 
     const payload = {
-      title: `Emergencia: ${selectedConfig?.label || 'General'}`,
-      type: selectedType === 'water' ? 'hazard' : selectedType === 'other' ? 'hazard' : selectedType,
-      severity: selectedType === 'medical' || selectedType === 'rescue' ? 'Crítica' : 'Alta',
-      lat: userPos.lat,
-      lng: userPos.lng,
-      address: `Cerca de lat: ${userPos.lat.toFixed(4)}, lng: ${userPos.lng.toFixed(4)}`,
-      detail: `[Personas involucradas: ${peopleCount}] ${description.trim() ? `- ${description.trim()}` : '- Sin descripción adicional'}`,
-      is_active: true
+      tipo_emergencia: databaseTypes[selectedType],
+      latitud: userPos.lat,
+      longitud: userPos.lng,
+      descripcion: description.trim() || null,
+      personas_afectadas: peopleCount,
+      estado: 'PENDIENTE'
     };
 
     try {
-      const { error } = await supabase.from('emergencies').insert([payload]);
+      const { error } = await supabase.from('reportes').insert([payload]);
 
       if (error) throw error;
 
