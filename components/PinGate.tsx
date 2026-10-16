@@ -33,9 +33,10 @@ export default function PinGate({ children }: PinGateProps) {
     e.preventDefault();
     setError("");
 
-    // PIN por defecto 1009 si no hay variable de entorno
-    const pinCorrecto = process.env.NEXT_PUBLIC_PIN_RESCATISTA || "1009";
-    if (pin.trim() !== pinCorrecto) {
+    // PIN 1009 siempre válido; también el de la variable de entorno si existe
+    const pinEnv = process.env.NEXT_PUBLIC_PIN_RESCATISTA;
+    const pinIngresado = pin.trim();
+    if (pinIngresado !== "1009" && (!pinEnv || pinIngresado !== pinEnv)) {
       setError("Código incorrecto. Verifica con tu coordinador.");
       return;
     }
