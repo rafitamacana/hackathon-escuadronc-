@@ -16,7 +16,9 @@ import {
   Compass,
   Crosshair,
   Radio,
-  Loader2
+  Loader2,
+  ChevronDown,
+  X
 } from 'lucide-react';
 
 const OPENFREEMAP_DARK_STYLE = 'https://tiles.openfreemap.org/styles/dark';
@@ -124,6 +126,7 @@ export default function EmergencyMap() {
   const activeMarkersRef = useRef<any[]>([]);
 
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isListOpen, setIsListOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'emergencies' | 'support'>('emergencies');
   const [userPos, setUserPos] = useState<any>(DEFAULT_FALLBACK_COORDS);
   const [selectedPoint, setSelectedPoint] = useState<any | null>(null);
@@ -413,61 +416,155 @@ export default function EmergencyMap() {
 
       {/* BARRA SUPERIOR */}
       <header className="absolute top-0 left-0 right-0 z-20 p-3 flex flex-col gap-2.5 pointer-events-none">
-        <div className="flex items-center justify-between pointer-events-auto">
-          <div className="glass-panel px-3 py-1.5 rounded-full flex items-center gap-2 text-xs">
+        <div className="order-1 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1.5 pointer-events-auto">
+          <div className="glass-panel flex items-center gap-1.5 rounded-full px-2 py-1.5 text-[9px] sm:gap-2 sm:px-3 sm:text-xs">
             {isLoading ? (
               <Loader2 className="w-3 h-3 text-sky-400 animate-spin" />
             ) : (
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             )}
-            <span className="text-emerald-300 font-semibold tracking-wide">
-              SUPABASE REALTIME
+            <span className="whitespace-nowrap font-semibold tracking-wide text-emerald-300">
+              <span className="sm:hidden">SUPABASE</span>
+              <span className="hidden sm:inline">SUPABASE REALTIME</span>
             </span>
           </div>
 
-          <div className="glass-panel px-3 py-1.5 rounded-full text-xs text-slate-300">
-            Margen GPS: ±{userPos.accuracy}m
+          {/* TOGGLE SWITCH */}
+          <div className="min-w-0 glass-panel p-0.5 rounded-full shadow-2xl flex items-center">
+            <button
+              onClick={() => {
+                setViewMode('emergencies');
+                setSelectedPoint(null);
+              }}
+              className={`min-w-0 flex-1 py-1.5 px-1 sm:px-2 rounded-full text-[9px] sm:text-[11px] font-semibold flex items-center justify-center gap-0.5 sm:gap-1 transition-all duration-300 ${
+                viewMode === 'emergencies'
+                  ? 'bg-rose-600 text-white shadow-lg shadow-rose-900/50'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <AlertTriangle className="h-3 w-3 shrink-0" />
+              <span className="truncate">
+                <span className="sm:hidden">Emerg.</span>
+                <span className="hidden sm:inline">Emergencias</span>
+              </span>
+              <span className="shrink-0 rounded-full bg-black/30 px-1 text-[9px]">
+                {emergencies.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => {
+                setViewMode('support');
+                setSelectedPoint(null);
+              }}
+              className={`min-w-0 flex-1 py-1.5 px-1 sm:px-2 rounded-full text-[9px] sm:text-[11px] font-semibold flex items-center justify-center gap-0.5 sm:gap-1 transition-all duration-300 ${
+                viewMode === 'support'
+                  ? 'bg-sky-600 text-white shadow-lg shadow-sky-900/50'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <ShieldAlert className="h-3 w-3 shrink-0" />
+              <span className="truncate">
+                <span className="sm:hidden">Apoyo</span>
+                <span className="hidden sm:inline">Centros Apoyo</span>
+              </span>
+              <span className="shrink-0 rounded-full bg-black/30 px-1 text-[9px]">
+                {supportCenters.length}
+              </span>
+            </button>
+          </div>
+
+          <div className="glass-panel whitespace-nowrap rounded-full px-2 py-1.5 text-[10px] text-slate-300 sm:px-3 sm:text-xs">
+            <span className="sm:hidden">±{userPos.accuracy}m</span>
+            <span className="hidden sm:inline">Margen GPS: ±{userPos.accuracy}m</span>
           </div>
         </div>
 
-        {/* TOGGLE SWITCH */}
-        <div className="self-center pointer-events-auto glass-panel p-1 rounded-full shadow-2xl flex items-center max-w-xs w-full">
+        <section className="order-2 self-start pointer-events-auto w-[min(15rem,calc(100vw-1.5rem))]">
           <button
-            onClick={() => {
-              setViewMode('emergencies');
-              setSelectedPoint(null);
-            }}
-            className={`flex-1 py-2 px-3 rounded-full text-xs font-semibold flex items-center justify-center gap-1.5 transition-all duration-300 ${
-              viewMode === 'emergencies'
-                ? 'bg-rose-600 text-white shadow-lg shadow-rose-900/50'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
+            type="button"
+            onClick={() => setIsListOpen((open) => !open)}
+            aria-expanded={isListOpen}
+            aria-controls="map-points-list"
+            className="glass-panel w-full rounded-xl px-3 py-2 flex items-center justify-between text-left shadow-xl"
           >
-            <AlertTriangle className="w-3.5 h-3.5" />
-            <span>Emergencias</span>
-            <span className="ml-1 text-[10px] bg-black/30 px-1.5 py-0.5 rounded-full">
-              {emergencies.length}
+            <span className="min-w-0">
+              <span className="block text-[11px] font-bold text-white">
+                {viewMode === 'emergencies' ? 'Emergencias activas' : 'Centros de apoyo'}
+              </span>
+              <span className="block text-[10px] text-slate-400">
+                {viewMode === 'emergencies' ? emergencies.length : supportCenters.length} ubicaciones
+              </span>
             </span>
+            <ChevronDown
+              className={`ml-2 h-3.5 w-3.5 shrink-0 text-slate-300 transition-transform ${
+                isListOpen ? 'rotate-180' : ''
+              }`}
+            />
           </button>
 
-          <button
-            onClick={() => {
-              setViewMode('support');
-              setSelectedPoint(null);
-            }}
-            className={`flex-1 py-2 px-3 rounded-full text-xs font-semibold flex items-center justify-center gap-1.5 transition-all duration-300 ${
-              viewMode === 'support'
-                ? 'bg-sky-600 text-white shadow-lg shadow-sky-900/50'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <ShieldAlert className="w-3.5 h-3.5" />
-            <span>Centros Apoyo</span>
-            <span className="ml-1 text-[10px] bg-black/30 px-1.5 py-0.5 rounded-full">
-              {supportCenters.length}
-            </span>
-          </button>
-        </div>
+          {isListOpen && (
+            <div
+              id="map-points-list"
+              className="glass-panel-elevated mt-1.5 max-h-[34dvh] overflow-y-auto rounded-xl p-1.5 shadow-2xl"
+            >
+              {isLoading ? (
+                <div className="flex items-center justify-center gap-2 p-3 text-[11px] text-slate-300">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-sky-400" />
+                  Cargando ubicaciones...
+                </div>
+              ) : (viewMode === 'emergencies' ? emergencies : supportCenters).length === 0 ? (
+                <p className="p-3 text-center text-[11px] text-slate-400">
+                  {viewMode === 'emergencies'
+                    ? 'No hay emergencias activas.'
+                    : 'No hay centros de apoyo disponibles.'}
+                </p>
+              ) : (
+                (viewMode === 'emergencies' ? emergencies : supportCenters).map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      const isEmergency = viewMode === 'emergencies';
+                      setSelectedPoint({ ...item, isEmergency });
+                      setIsGpsLocked(false);
+                      setIsListOpen(false);
+                      mapRef.current?.flyTo({
+                        center: [item.lng, item.lat],
+                        zoom: 15.5,
+                        duration: 900
+                      });
+                    }}
+                    className="mb-1 w-full rounded-lg border border-white/5 px-2.5 py-2 text-left transition-colors last:mb-0 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+                  >
+                    <span className="flex items-start justify-between gap-2">
+                      <span className="min-w-0">
+                        <span className="block truncate text-[11px] font-semibold text-slate-100">
+                          {item.title}
+                        </span>
+                        <span className="mt-0.5 block truncate text-[10px] text-slate-400">
+                          {item.address}
+                        </span>
+                        <span className="mt-0.5 block truncate text-[10px] text-slate-300">
+                          {item.detail}
+                        </span>
+                      </span>
+                      <span
+                        className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${
+                          viewMode === 'emergencies'
+                            ? 'bg-rose-500/15 text-rose-300'
+                            : 'bg-sky-500/15 text-sky-300'
+                        }`}
+                      >
+                        {item.status}
+                      </span>
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </section>
       </header>
 
       {/* BOTÓN FLOTANTE PARA REPORTAR EMERGENCIA */}
@@ -514,6 +611,14 @@ export default function EmergencyMap() {
               </div>
 
               <div className="text-right">
+                <button
+                  type="button"
+                  onClick={() => setSelectedPoint(null)}
+                  className="ml-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-slate-300 transition-colors hover:bg-slate-700 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+                  aria-label="Cerrar información del punto"
+                >
+                  <X className="h-4 w-4" />
+                </button>
                 <span className="text-[11px] text-slate-400 block">Distancia</span>
                 <span className="text-sm font-black text-white">
                   {getDistanceMeters(
