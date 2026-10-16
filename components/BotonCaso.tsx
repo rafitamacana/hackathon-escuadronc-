@@ -9,7 +9,10 @@ import {
   tomarCaso,
   soltarCaso,
   resolverCaso,
-} from "@/lib/asignaciones-stub";
+} from "@/lib/asignaciones";
+
+const mensajeReporteTomado =
+  "Este reporte ya fue tomado por otro rescatista.";
 
 interface BotonCasoProps {
   reporte: Reporte;
@@ -46,19 +49,18 @@ export default function BotonCaso({ reporte, asignacion, onCambio }: BotonCasoPr
     setCargando(true);
     setMensaje("");
     try {
-      const res = await tomarCaso(reporte.id, rescatista.id, rescatista.nombre);
-      if (!res.ok) {
-        if (res.motivo === "ya_tomado") {
-          setMensaje("Este caso ya lo tomó otro equipo");
-        } else {
-          setMensaje("Error al tomar el caso");
-        }
+      await tomarCaso(reporte.id, rescatista.id, rescatista.nombre);
+      onCambio();
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === mensajeReporteTomado
+      ) {
+        window.alert(error.message);
         onCambio();
       } else {
-        onCambio();
+        setMensaje("Error de conexión");
       }
-    } catch {
-      setMensaje("Error de conexión");
     } finally {
       setCargando(false);
     }
@@ -68,7 +70,7 @@ export default function BotonCaso({ reporte, asignacion, onCambio }: BotonCasoPr
     if (!online || cargando || !asignacion) return;
     setCargando(true);
     try {
-      await resolverCaso(asignacion.id, rescatista.id);
+      await resolverCaso(asignacion.id, reporte.id);
       onCambio();
     } catch {
       setMensaje("Error al resolver");
@@ -81,7 +83,7 @@ export default function BotonCaso({ reporte, asignacion, onCambio }: BotonCasoPr
     if (!online || cargando || !asignacion) return;
     setCargando(true);
     try {
-      await soltarCaso(asignacion.id, rescatista.id);
+      await soltarCaso(asignacion.id, reporte.id);
       onCambio();
     } catch {
       setMensaje("Error al soltar");
@@ -156,6 +158,18 @@ export default function BotonCaso({ reporte, asignacion, onCambio }: BotonCasoPr
         {cargando ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserCheck className="w-3 h-3" />}
         Tomar caso
       </button>
+      {process.env.NODE_ENV === "development" && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            window.alert(mensajeReporteTomado);
+          }}
+          className="w-full py-1 px-2 text-slate-400 hover:text-slate-200 text-[10px] underline underline-offset-2"
+        >
+          Simular alerta (solo desarrollo)
+        </button>
+      )}
       {mensaje && (
         <p className="text-[10px] text-rose-400">{mensaje}</p>
       )}
