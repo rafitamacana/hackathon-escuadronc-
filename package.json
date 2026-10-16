@@ -13,10 +13,7 @@
     "dexie": "^4.4.6",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.57.0",
-<<<<<<< HEAD
     "maplibre-gl": "^6.14.0",
-=======
->>>>>>> main
     "next": "16.4.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
