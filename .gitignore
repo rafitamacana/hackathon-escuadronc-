@@ -1,4 +1,3 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
 /node_modules
@@ -42,3 +41,12 @@ next-env.d.ts
 
 
 .dist
+
+# PWA (generado por @ducanh2912/next-pwa)
+/public/sw.js
+/public/sw.js.map
+/public/workbox-*.js
+/public/workbox-*.js.map
+/public/swe-worker-*.js
+/public/swe-worker-*.js.map
+/public/fallback-*.js
