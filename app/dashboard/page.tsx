@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import type { Reporte } from '@/types/reporte';
+import type { Asignacion } from '@/types/asignacion';
 import {
   ShieldAlert,
   Users,
@@ -15,6 +16,9 @@ import {
   Layers,
 } from 'lucide-react';
 import { supabase, obtenerReportes, marcarAtendida } from '@/lib/supabase';
+import { getAsignacionesActivas } from '@/lib/asignaciones-stub';
+import PinGate from '@/components/PinGate';
+import BotonCaso from '@/components/BotonCaso';
 
 const Mapa = dynamic(() => import('@/components/dashboard/Mapa'), {
   ssr: false,
@@ -38,6 +42,29 @@ export default function DashboardPage() {
   const [filtroEstado, setFiltroEstado] = useState<string>('TODOS');
   const [alertaEnfocada, setAlertaEnfocada] = useState<Reporte | null>(null);
 
+  // asignaciones de casos a rescatistas
+  const [asignaciones, setAsignaciones] = useState<Asignacion[]>([]);
+
+  const cargarAsignaciones = useCallback(async () => {
+    try {
+      const data = await getAsignacionesActivas();
+      setAsignaciones(data);
+    } catch (err) {
+      console.warn('Error al cargar asignaciones:', err);
+    }
+  }, []);
+
+  // mapa rapido de reporte_id -> asignacion
+  const asignacionPorReporte = useMemo(() => {
+    const m = new Map<string, Asignacion>();
+    for (const a of asignaciones) {
+      if (a.estado !== 'liberado') {
+        m.set(a.reporte_id, a);
+      }
+    }
+    return m;
+  }, [asignaciones]);
+
   const cargarDatos = useCallback(async () => {
     try {
       if (typeof obtenerReportes === 'function') {
@@ -55,9 +82,10 @@ export default function DashboardPage() {
 
   useEffect(() => {
     cargarDatos();
+    cargarAsignaciones();
 
     if (supabase) {
-      const channel = supabase
+      const chReportes = supabase
         .channel('reportes_realtime')
         .on(
           'postgres_changes',
@@ -66,11 +94,21 @@ export default function DashboardPage() {
         )
         .subscribe();
 
+      const chAsignaciones = supabase
+        .channel('asignaciones')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'asignaciones' },
+          () => cargarAsignaciones()
+        )
+        .subscribe();
+
       return () => {
-        supabase.removeChannel(channel);
+        supabase.removeChannel(chReportes);
+        supabase.removeChannel(chAsignaciones);
       };
     }
-  }, [cargarDatos]);
+  }, [cargarDatos, cargarAsignaciones]);
 
   const handleMarcarAtendida = async (id: string) => {
     setReportes((prev) =>
@@ -108,6 +146,7 @@ export default function DashboardPage() {
   }, [reportes]);
 
   return (
+    <PinGate>
     <div className="flex h-screen w-screen overflow-hidden bg-slate-950 text-slate-100 font-sans selection:bg-rose-500/30">
       {/* SECCIÓN IZQUIERDA: MAPA */}
       <div className="flex-1 h-full relative">
@@ -342,19 +381,17 @@ export default function DashboardPage() {
                       >
                         <Navigation className="w-3.5 h-3.5" />
                       </button>
-
-                      {rep.estado !== 'ATENDIDA' && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleMarcarAtendida(rep.id);
-                          }}
-                          className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-black shadow-md shadow-emerald-950 transition-all active:scale-95"
-                        >
-                          Atender
-                        </button>
-                      )}
                     </div>
+
+                    {rep.estado !== 'ATENDIDA' && (
+                      <div className="mt-2 pt-2 border-t border-white/5">
+                        <BotonCaso
+                          reporte={rep}
+                          asignacion={asignacionPorReporte.get(rep.id) ?? null}
+                          onCambio={cargarAsignaciones}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -363,5 +400,6 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
+    </PinGate>
   );
 }

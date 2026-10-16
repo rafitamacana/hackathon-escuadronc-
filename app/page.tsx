@@ -2,6 +2,7 @@
 
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import Link from 'next/link';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { marcarAtendida, supabase } from '../lib/supabase';
@@ -611,6 +612,14 @@ export default function EmergencyMap() {
       >
         <Crosshair className="w-5 h-5" />
       </button>
+
+      {/* ENLACE DISCRETO PARA RESCATISTAS */}
+      <Link
+        href="/dashboard"
+        className="absolute left-1/2 -translate-x-1/2 bottom-[6.5rem] z-10 text-[10px] text-slate-400 hover:text-white bg-slate-900/60 backdrop-blur-sm px-3 py-1 rounded-full border border-white/5 transition-colors"
+      >
+        Soy rescatista →
+      </Link>
 
       {/* BOTTOM SHEET */}
       <footer className="absolute bottom-0 left-0 right-0 z-20 pointer-events-auto p-3">
